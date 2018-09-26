@@ -1,12 +1,21 @@
-# Laravel Nova / Laravel Cashier
+ **_This package is not yet fully tested, and not yet on composer._** 
+
+# Laravel Nova / Laravel Cashier / Braintree
+This package is based on [nova-cashier-manager](https://github.com/themsaid/nova-cashier-manager), I kept his namespace for all PHP classes.
 
 This package adds several components to your Laravel Nova Admin panel to help you with managing customer subscriptions, it works hand
 in hand with [Laravel Cashier](https://github.com/laravel/cashier).
 
-Looking to see high-level information about your application's Stripe balance and charges in a Nova dashboard? Check out [Nova Stripe Dashboard](https://github.com/tightenco/nova-stripe).
+## Difference 
 
+1. This package uses a more generic term `billable` in place of `user` in variable names and route names 
+2. Some features / Data will not display properly, due to the braintree feature missing
+3. `charges` are `transactions`
+4. BrainTree Libraries has fully replaced the Stripe Library.
+5. It does support multiple different plans, but due to the limitation of the UI, it only shows the first plan. 
 
 ## How it works
+This package intends to function as much we can with the BrainTree Library, and Laravel Cashier. Some features that was meant for Stripe will be lost (e.g. Refund)
 
 This package adds a section in the billable resource details view with some information about the subscription:
 
@@ -17,14 +26,14 @@ to a screen with full management capabilities.
 
 <img src="https://github.com/themsaid/nova-cashier-tool/blob/master/billable-screen.jpg?raw=true">
 
-Currently this package works only with laravel cashier for Stripe, Braintree is not supported yet.
+Currently this package works only with laravel cashier for Braintree, Stripe has been taken out.
 
 ## Installation and usage
 
-You may require this package using composer:
+You may require this package using composer: (not yet on composer, will figure out what to do)
 
 ```
-composer require themsaid/nova-cashier-manager
+composer require "shuyi/nova-bt-cashier-manager"
 ```
 
 Next up, you must register the tool with Nova in the tools method of the NovaServiceProvider:
