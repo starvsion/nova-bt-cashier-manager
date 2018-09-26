@@ -3,8 +3,8 @@ Nova.booting((Vue, router) => {
     
     router.addRoutes([
         {
-            name: 'cashier-tool-user',
-            path: '/cashier-tool/user/:userId',
+            name: 'cashier-tool-billable',
+            path: '/cashier-tool/billable/:userId',
             component: require('./components/UserDetails'),
             props: true
         },

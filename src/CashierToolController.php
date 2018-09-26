@@ -1,268 +1,274 @@
 <?php
 
-namespace Themsaid\CashierTool;
+    namespace Themsaid\CashierTool;
 
-use Stripe\Plan;
-use Stripe\Refund;
-use Stripe\Stripe;
-use Stripe\Dispute;
-use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
-use Illuminate\Config\Repository;
-use Illuminate\Routing\Controller;
-use Stripe\Subscription as StripeSubscription;
+    use Braintree\Plan;
+    use Braintree\Transaction;
+    use Illuminate\Config\Repository;
+    use Illuminate\Http\Request;
+    use Illuminate\Routing\Controller;
+    use Illuminate\Support\Carbon;
+    use Illuminate\Support\Collection;
+    use Laravel\Cashier\Invoice;
 
-class CashierToolController extends Controller
-{
-    /**
-     * The model used by Stripe.
-     *
-     * @var string
-     */
-    public $stripeModel;
-
-    /**
-     * The subscription name.
-     *
-     * @var string
-     */
-    public $subscriptionName;
-
-    /**
-     * Create a new controller instance.
-     *
-     * @param \Illuminate\Config\Repository $config
-     */
-    public function __construct(Repository $config)
+    class CashierToolController extends Controller
     {
-        $this->middleware(function ($request, $next) use ($config) {
-            Stripe::setApiKey($config->get('services.stripe.secret'));
+        /**
+         * The model used by Cashier.
+         *
+         * @var string
+         */
+        public $billableModel;
 
-            $this->stripeModel = $config->get('services.stripe.model');
 
-            $this->subscriptionName = $config->get('nova-cashier-manager.subscription_name');
+        /**
+         * Create a new controller instance.
+         *
+         * @param \Illuminate\Config\Repository $config
+         */
+        public function __construct(Repository $config)
+        {
+            $this->middleware(function ($request, $next) use ($config) {
+                \Braintree_Configuration::environment(config('services.braintree.environment'));
+                \Braintree_Configuration::merchantId(config('services.braintree.merchant_id'));
+                \Braintree_Configuration::publicKey(config('services.braintree.public_key'));
+                \Braintree_Configuration::privateKey(config('services.braintree.private_key'));
 
-            return $next($request);
-        });
-    }
+                $this->billableModel = $config->get('services.braintree.model');
 
-    /**
-     * Return the user response.
-     *
-     * @param  int $billableId
-     * @param  bool $brief
-     * @return \Illuminate\Http\Response
-     */
-    public function user($billableId)
-    {
-        $billable = (new $this->stripeModel)->find($billableId);
-
-        $subscription = $billable->subscription($this->subscriptionName);
-
-        if (! $subscription) {
-            return [
-                'subscription' => null,
-            ];
+                return $next($request);
+            });
         }
 
-        $stripeSubscription = StripeSubscription::retrieve($subscription->stripe_id);
+        /**
+         * Return the user response.
+         *
+         * @param  int $billableId
+         *
+         * @return array
+         * @throws \Braintree\Exception\NotFound
+         */
+        public function billable($billableId)
+        {
+            /** @var \Laravel\Cashier\Billable|\Eloquent $billable */
+            $billable = (new $this->billableModel)->find($billableId);
 
-        return [
-            'user' => $billable->toArray(),
-            'cards' => request('brief') ? [] : $this->formatCards($billable->cards(), $billable->defaultCard()->id),
-            'invoices' => request('brief') ? [] : $this->formatInvoices($billable->invoicesIncludingPending()),
-            'charges' => request('brief') ? [] : $this->formatCharges($billable->asStripeCustomer()->charges()),
-            'subscription' => $this->formatSubscription($subscription, $stripeSubscription),
-            'plans' => request('brief') ? [] : $this->formatPlans(Plan::all(['limit' => 100])),
-        ];
-    }
+            $subscription = $billable->subscriptions()->first();
 
-    /**
-     * Cancel the given subscription.
-     *
-     * @param  \Illuminate\Http\Request $request
-     * @param  int $billableId
-     * @return \Illuminate\Http\Response
-     */
-    public function cancelSubscription(Request $request, $billableId)
-    {
-        $billable = (new $this->stripeModel)->find($billableId);
+            if (!$subscription) {
+                return [
+                    'subscription' => null,
+                ];
+            }
 
-        if ($request->input('now')) {
-            $billable->subscription($this->subscriptionName)->cancelNow();
-        } else {
-            $billable->subscription($this->subscriptionName)->cancel();
-        }
-    }
-
-    /**
-     * Update the given subscription.
-     *
-     * @param  \Illuminate\Http\Request $request
-     * @param  int $billableId
-     * @return \Illuminate\Http\Response
-     */
-    public function updateSubscription(Request $request, $billableId)
-    {
-        $billable = (new $this->stripeModel)->find($billableId);
-
-        $billable->subscription($this->subscriptionName)->swap($request->input('plan'));
-    }
-
-    /**
-     * Resume the given subscription.
-     *
-     * @param  \Illuminate\Http\Request $request
-     * @param  int $billableId
-     * @param  int $subscriptionId
-     * @return \Illuminate\Http\Response
-     */
-    public function resumeSubscription(Request $request, $billableId)
-    {
-        $billable = (new $this->stripeModel)->find($billableId);
-
-        $billable->subscription($this->subscriptionName)->resume();
-    }
-
-    /**
-     * Refund the given charge.
-     *
-     * @param  \Illuminate\Http\Request $request
-     * @param  int $billableId
-     * @param  string $stripeChargeId
-     * @return \Illuminate\Http\Response
-     */
-    public function refundCharge(Request $request, $billableId, $stripeChargeId)
-    {
-        $refundParameters = ['charge' => $stripeChargeId];
-
-        if ($request->input('amount')) {
-            $refundParameters['amount'] = $request->input('amount');
+            return response()->json([
+                'user'     => $billable->toArray(),
+                'cards'    => request('brief') ? [] : $this->formatCards($billable),
+                'invoices' => request('brief') ? [] : $this->formatInvoices($billable->invoicesIncludingPending()->get()),
+                'charges'  => request('brief') ? [] : $this->formatCharges($billable),
+                'subscription' => $this->formatSubscription($subscription),
+                 'plans' => request('brief') ? [] : $this->formatPlans(Plan::all()),
+            ]);
         }
 
-        if ($request->input('notes')) {
-            $refundParameters['metadata'] = ['notes' => $request->input('notes')];
+        /**
+         * Cancel the given subscription.
+         *
+         * @param  \Illuminate\Http\Request $request
+         * @param  int                      $billableId
+         *
+         * @return \Illuminate\Http\Response
+         */
+        public function cancelSubscription(Request $request, $billableId)
+        {
+            /** @var \Laravel\Cashier\Billable|\Eloquent $billable */
+            $billable = (new $this->billableModel)->find($billableId);
+
+            if ($request->input('now')) {
+                $billable->subscription($request->subscription_id)->cancelNow();
+            } else {
+                $billable->subscription($request->subscription_id)->cancel();
+            }
         }
 
-        Refund::create($refundParameters);
-    }
+        /**
+         * Update the given subscription.
+         *
+         * @param  \Illuminate\Http\Request $request
+         * @param  int                      $billableId
+         *
+         * @return \Illuminate\Http\Response
+         */
+        public function updateSubscription(Request $request, $billableId)
+        {
+            $billable = (new $this->billableModel)->find($billableId);
 
-    /**
-     * Format a a subscription object.
-     *
-     * @param  \Laravel\Cashier\Subscription $subscription
-     * @param  \Stripe\Subscription $stripeSubscription
-     * @return array
-     */
-    public function formatSubscription($subscription, $stripeSubscription)
-    {
-        return array_merge($subscription->toArray(), [
-            'plan_amount' => $stripeSubscription->plan->amount,
-            'plan_interval' => $stripeSubscription->plan->interval,
-            'plan_currency' => $stripeSubscription->plan->currency,
-            'plan' => $subscription->stripe_plan,
-            'stripe_plan' => $stripeSubscription->plan->id,
-            'ended' => $subscription->ended(),
-            'cancelled' => $subscription->cancelled(),
-            'active' => $subscription->active(),
-            'on_trial' => $subscription->onTrial(),
-            'on_grace_period' => $subscription->onGracePeriod(),
-            'charges_automatically' => $stripeSubscription->billing == 'charge_automatically',
-            'created_at' => $stripeSubscription->billing_cycle_anchor ? Carbon::createFromTimestamp($stripeSubscription->billing_cycle_anchor)->toDateTimeString() : null,
-            'ended_at' => $stripeSubscription->ended_at ? Carbon::createFromTimestamp($stripeSubscription->ended_at)->toDateTimeString() : null,
-            'current_period_start' => $stripeSubscription->current_period_start ? Carbon::createFromTimestamp($stripeSubscription->current_period_start)->toDateString() : null,
-            'current_period_end' => $stripeSubscription->current_period_end ? Carbon::createFromTimestamp($stripeSubscription->current_period_end)->toDateString() : null,
-            'days_until_due' => $stripeSubscription->days_until_due,
-            'cancel_at_period_end' => $stripeSubscription->cancel_at_period_end,
-            'canceled_at' => $stripeSubscription->canceled_at,
-        ]);
-    }
+            $billable->subscription($request->subscription_id)->swap($request->input('plan'));
+        }
 
-    /**
-     * Format the cards collection.
-     *
-     * @param  array $cards
-     * @param  null|int $defaultCardId
-     * @return array
-     */
-    private function formatCards($cards, $defaultCardId = null)
-    {
-        return collect($cards)->map(function ($card) use ($defaultCardId) {
-            return [
-                'id' => $card->id,
-                'is_default' => $card->id == $defaultCardId,
-                'name' => $card->name,
-                'last4' => $card->last4,
-                'country' => $card->country,
-                'brand' => $card->brand,
-                'exp_month' => $card->exp_month,
-                'exp_year' => $card->exp_year,
-            ];
-        })->toArray();
-    }
+        /**
+         * Resume the given subscription.
+         *
+         * @param  \Illuminate\Http\Request $request
+         * @param  int                      $billableId
+         * @param  int                      $subscription_id
+         *
+         * @return \Illuminate\Http\Response
+         */
+        public function resumeSubscription(Request $request, $billableId)
+        {
+            $billable = (new $this->billableModel)->find($billableId);
 
-    /**
-     * Format the invoices collection.
-     *
-     * @param  array $invoices
-     * @return array
-     */
-    private function formatInvoices($invoices)
-    {
-        return collect($invoices)->map(function ($invoice) {
-            return [
-                'id' => $invoice->id,
-                'total' => $invoice->total,
-                'attempted' => $invoice->attempted,
-                'charge_id' => $invoice->charge,
-                'currency' => $invoice->currency,
-                'period_start' => $invoice->period_start ? Carbon::createFromTimestamp($invoice->period_start)->toDateTimeString() : null,
-                'period_end' => $invoice->period_end ? Carbon::createFromTimestamp($invoice->period_end)->toDateTimeString() : null,
-            ];
-        })->toArray();
-    }
+            $billable->subscription($request->subscription_id)->resume();
+        }
 
-    /**
-     * Format the charges collection.
-     *
-     * @param  array $charges
-     * @return array
-     */
-    private function formatCharges($charges)
-    {
-        return collect($charges->data)->map(function ($charge) {
-            return [
-                'id' => $charge->id,
-                'amount' => $charge->amount,
-                'amount_refunded' => $charge->amount_refunded,
-                'captured' => $charge->captured,
-                'paid' => $charge->paid,
-                'status' => $charge->status,
-                'currency' => $charge->currency,
-                'dispute' => $charge->dispute ? Dispute::retrieve($charge->dispute) : null,
-                'failure_code' => $charge->failure_code,
-                'failure_message' => $charge->failure_message,
-                'created' => $charge->created ? Carbon::createFromTimestamp($charge->created)->toDateTimeString() : null,
-            ];
-        })->toArray();
-    }
+        /**
+         * Refund the given charge. ( Don't think it's possible with BT)
+         *
+         * @param  \Illuminate\Http\Request $request
+         * @param  int                      $billableId
+         * @param  string                   $stripeChargeId
+         *
+         * @return \Illuminate\Http\Response
+         */
+        public function refundCharge(Request $request, $billableId, $stripeChargeId)
+        {
+            return '';
+        }
 
-    /**
-     * Format the plans collection.
-     *
-     * @param  array $charges
-     * @return array
-     */
-    private function formatPlans($plans)
-    {
-        return collect($plans->data)->map(function ($plan) {
-            return [
-                'id' => $plan->id,
-                'price' => $plan->amount,
-                'interval' => $plan->interval,
-                'currency' => $plan->currency,
-                'interval_count' => $plan->interval_count,
-            ];
-        })->toArray();
+        /**
+         * Format a a subscription object.
+         *
+         * @param  \Laravel\Cashier\Subscription $subscription
+         * @param  \Stripe\Subscription          $stripeSubscription
+         *
+         * @return array
+         */
+        public function formatSubscription($subscription)
+        {
+            $brainTreeSubscription = $subscription->asBraintreeSubscription();
+           // dd($brainTreeSubscription->jsonSerialize());
+            return array_merge($subscription->toArray(), [
+                'plan_amount'           => $brainTreeSubscription->nextBillAmount,
+                //braintree is always 1 month
+                'plan_interval'         => 1,
+                'plan_currency'         => NULL,
+                'plan'                  => $brainTreeSubscription,
+                'stripe_plan'           => $brainTreeSubscription->id,
+                'ended'                 => null,
+                'cancelled'             => $subscription->cancelled(),
+                'active'                => $subscription->active(),
+                'on_trial'              => $subscription->onTrial(),
+                'on_grace_period'       => $subscription->onGracePeriod(),
+                'charges_automatically' => true,
+                'created_at'            => Carbon::createFromTimestamp($brainTreeSubscription->createdAt->getTimestamp()),
+                'ended_at'              => null,
+                'current_period_start'  => $brainTreeSubscription->billingPeriodStartDate ? Carbon::createFromTimestamp($brainTreeSubscription->billingPeriodStartDate)->toDateString() : null,
+                'current_period_end'    => $brainTreeSubscription->billingPeriodEndDate ? Carbon::createFromTimestamp($brainTreeSubscription->billingPeriodEndDate)->toDateString() : null,
+                'days_until_due'        => 0,
+                'cancel_at_period_end'  => 0,
+                'canceled_at'           => null,
+            ]);
+        }
+
+        /**
+         * Format the cards collection.
+         *
+         * @param  \Laravel\Cashier\Billable|\Eloquent $billable
+         *
+         * @return array
+         * @throws \Braintree\Exception\NotFound
+         */
+        private function formatCards($billable)
+        {
+            $creditCards = \Braintree_Customer::find($billable->braintree_id)->creditCards;
+
+            return collect($creditCards)->map(function ($card) {
+                $expiryArray = explode('/', $card->expirationDate);
+
+                return [
+                    'id'         => $card->uniqueNumberIdentifier,
+                    'is_default' => $card->default,
+                    'name'       => $card->cardholderName,
+                    'last4'      => $card->last4,
+                    'country'    => $card->billingAddress->countryCodeAlpha2,
+                    'brand'      => $card->cardType,
+                    'exp_month'  => $expiryArray[0],
+                    'exp_year'   => $expiryArray[1],
+                ];
+            })->toArray();
+        }
+
+        /**
+         * Format the invoices collection.
+         *
+         * @param  array|collection $invoices
+         *
+         * @return array
+         */
+        private function formatInvoices($invoices)
+        {
+            return collect($invoices)->map(function (Invoice $invoice) {
+                return [
+                    'id'           => $invoice->asBraintreeTransaction()->id,
+                    'total'        => $invoice->total(),
+                    //not sure what this one does ?
+                    'attempted'    => $invoice->asBraintreeTransaction()->processorResponseCode,
+                    'charge_id'    => $invoice->asBraintreeTransaction()->id,
+                    'currency'     => $invoice->asBraintreeTransaction()->currencyIsoCode,
+                    //these two should work, need testing
+                    'period_start' => $invoice->period_start ? Carbon::createFromTimestamp($invoice->period_start)->toDateTimeString() : null,
+                    'period_end'   => $invoice->period_end ? Carbon::createFromTimestamp($invoice->period_end)->toDateTimeString() : null,
+                ];
+            })->toArray();
+        }
+
+        /**
+         * Format the charges collection.
+         *
+         * /** @var \Laravel\Cashier\Billable|\Eloquent $billable
+         * @return array
+         */
+        private function formatCharges($billable)
+        {
+            $transactions = \Braintree_Transaction::search([
+                \Braintree_TransactionSearch::customerId()->is($billable->braintree_id),
+            ]);
+            return collect($transactions)->map(function (Transaction $charge) {
+                return [
+                    'id'              => $charge->id,
+                    'amount'          => $charge->amount,
+                    //not sure how amount_refunded or captured is being captured by BT
+                    'amount_refunded' => 0,
+                    'captured'        => true,
+                    'paid'            => $charge->processorResponseCode == 'Approved',
+                    'status'          => $charge->status,
+                    'currency'        => $charge->currencyIsoCode,
+                    'dispute'         => $charge->disputes,
+                    'failure_code'    => $charge->processorResponseCode,
+                    'failure_message' => $charge->additionalProcessorResponse,
+                    'created'         => $charge->createdAt ? Carbon::createFromTimestamp($charge->createdAt->getTimestamp())->toDateTimeString() : null,
+                ];
+            })->toArray();
+        }
+
+        /**
+         * Format the plans collection.
+         *
+         * @param  array $charges
+         *
+         * @return array
+         */
+        private function formatPlans($plans)
+        {
+            return collect($plans)->map(function (Plan $plan) {
+                return [
+                    'id'             => $plan->id,
+                    'price'          => $plan->price,
+                    'interval'       => $plan->billingFrequency,
+                    'currency'       => $plan->currencyIsoCode,
+                    'interval_count' => $plan->billingFrequency,
+                ];
+            })->toArray();
+        }
     }
-}

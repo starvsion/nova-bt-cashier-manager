@@ -1,16 +1,20 @@
 {
-    "name": "themsaid/nova-cashier-manager",
-    "description": "Managing Stripe subscriptions inside the incredible Laravel Nova admin panel.",
+    "name": "shuyi/nova-bt-cashier-manager",
+    "description": "Managing BrainTree subscriptions inside the incredible Laravel Nova admin panel.",
     "keywords": [
         "laravel",
         "nova",
         "cashier",
-        "stripe"
+        "braintree"
     ],
     "authors": [
         {
             "name": "Mohamed Said",
             "email": "mohamed@laravel.com"
+        },
+        {
+            "name": "Junhai Yang",
+            "email": "y.junhai@gmail.com"
         }
     ],
     "license": "MIT",
