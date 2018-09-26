@@ -27,15 +27,6 @@ class CashierToolServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        if ($this->app->runningInConsole()) {
-            $this->publishes([
-                __DIR__.'/../config/nova-cashier-manager.php' => config_path('nova-cashier-manager.php'),
-            ], 'horizon-config');
-        }
-
-        $this->mergeConfigFrom(
-            __DIR__.'/../config/nova-cashier-manager.php', 'nova-cashier-manager'
-        );
     }
 
 

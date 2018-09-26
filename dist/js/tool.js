@@ -643,7 +643,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
         return {
             loading: true,
             user: null,
-            subscription: null
+            subscriptions: null
         };
     },
 
@@ -665,7 +665,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 
             axios.get('/nova-cashier-tool-api/billable/' + this.resourceId + '/?brief=true').then(function (response) {
                 _this.user = response.data.user;
-                _this.subscription = response.data.subscription;
+                _this.subscriptions = response.data.subscriptions;
 
                 _this.loading = false;
             });
@@ -684,128 +684,148 @@ var render = function() {
   return _c(
     "div",
     [
-      _c("loading-view", { attrs: { loading: _vm.loading } }, [
-        !_vm.subscription
-          ? _c("p", { staticClass: "text-90" }, [
-              _vm._v("\n            User has no subscription.\n        ")
-            ])
-          : _vm._e(),
-        _vm._v(" "),
-        _vm.subscription
-          ? _c("div", { staticClass: "flex border-b border-40" }, [
-              _c("div", { staticClass: "w-1/4 py-4" }, [
-                _c("h4", { staticClass: "font-normal text-80" }, [
-                  _vm._v("Plan")
-                ])
-              ]),
-              _vm._v(" "),
-              _c("div", { staticClass: "w-3/4 py-4" }, [
-                _c("p", { staticClass: "text-90" }, [
-                  _vm._v(
-                    "\n                " +
-                      _vm._s(_vm.subscription.plan) +
-                      "\n                (" +
-                      _vm._s(_vm.subscription.plan_amount / 100) +
-                      " " +
-                      _vm._s(_vm.subscription.plan_currency) +
-                      " / " +
-                      _vm._s(_vm.subscription.plan_interval) +
-                      ")\n            "
-                  )
-                ])
+      _c(
+        "loading-view",
+        { attrs: { loading: _vm.loading } },
+        [
+          !_vm.subscriptions
+            ? _c("div", { staticClass: "text-90" }, [
+                _vm._v("\n            User has no subscriptions.\n        ")
               ])
-            ])
-          : _vm._e(),
-        _vm._v(" "),
-        _vm.subscription
-          ? _c("div", { staticClass: "flex border-b border-40" }, [
-              _c("div", { staticClass: "w-1/4 py-4" }, [
-                _c("h4", { staticClass: "font-normal text-80" }, [
-                  _vm._v("Subscribed since")
-                ])
-              ]),
-              _vm._v(" "),
-              _c("div", { staticClass: "w-3/4 py-4" }, [
-                _c("p", { staticClass: "text-90" }, [
-                  _vm._v(_vm._s(_vm.subscription.created_at))
-                ])
-              ])
-            ])
-          : _vm._e(),
-        _vm._v(" "),
-        _vm.subscription
-          ? _c("div", { staticClass: "flex border-b border-40" }, [
-              _c("div", { staticClass: "w-1/4 py-4" }, [
-                _c("h4", { staticClass: "font-normal text-80" }, [
-                  _vm._v("Billing Period")
-                ])
-              ]),
-              _vm._v(" "),
-              _c("div", { staticClass: "w-3/4 py-4" }, [
-                _c("p", { staticClass: "text-90" }, [
-                  _vm._v(
-                    _vm._s(_vm.subscription.current_period_start) +
-                      " => " +
-                      _vm._s(_vm.subscription.current_period_end)
-                  )
-                ])
-              ])
-            ])
-          : _vm._e(),
-        _vm._v(" "),
-        _vm.subscription
-          ? _c(
-              "div",
-              { staticClass: "flex border-b border-40 remove-bottom-border" },
-              [
-                _c("div", { staticClass: "w-1/4 py-4" }, [
-                  _c("h4", { staticClass: "font-normal text-80" }, [
-                    _vm._v("Status")
-                  ])
-                ]),
-                _vm._v(" "),
-                _c("div", { staticClass: "w-3/4 py-4" }, [
-                  _c("p", { staticClass: "text-90" }, [
-                    _vm.subscription.on_grace_period
-                      ? _c("span", [_vm._v("On Grace Period")])
+            : _vm._l(_vm.subscriptions, function(subscription) {
+                return _c(
+                  "div",
+                  { staticStyle: { "border-bottom": "2px solid lightgray" } },
+                  [
+                    _c("div", { staticClass: "flex border-b border-40" }, [
+                      _c("div", { staticClass: "w-1/4 py-4" }, [
+                        _c("h4", { staticClass: "font-normal text-80" }, [
+                          _vm._v("Plan")
+                        ])
+                      ]),
+                      _vm._v(" "),
+                      _c("div", { staticClass: "w-3/4 py-4" }, [
+                        _c("p", { staticClass: "text-90" }, [
+                          _vm._v(
+                            "\n                    " +
+                              _vm._s(subscription.plan) +
+                              "\n                    (" +
+                              _vm._s(subscription.plan_amount) +
+                              " " +
+                              _vm._s(subscription.plan_currency) +
+                              " / " +
+                              _vm._s(subscription.plan_frequency) +
+                              " time(s) On the " +
+                              _vm._s(subscription.plan_interval) +
+                              "th each Month(s))\n                "
+                          )
+                        ])
+                      ])
+                    ]),
+                    _vm._v(" "),
+                    subscription
+                      ? _c(
+                          "div",
+                          { staticClass: "flex border-b border-40 mb-5" },
+                          [
+                            _c("div", { staticClass: "w-1/4 py-4" }, [
+                              _c("h4", { staticClass: "font-normal text-80" }, [
+                                _vm._v("Subscribed since")
+                              ])
+                            ]),
+                            _vm._v(" "),
+                            _c("div", { staticClass: "w-3/4 py-4" }, [
+                              _c("p", { staticClass: "text-90" }, [
+                                _vm._v(_vm._s(subscription.created_at))
+                              ])
+                            ])
+                          ]
+                        )
                       : _vm._e(),
                     _vm._v(" "),
-                    _vm.subscription.cancelled ||
-                    _vm.subscription.cancel_at_period_end
-                      ? _c("span", { staticClass: "text-danger" }, [
-                          _vm._v("Cancelled")
+                    subscription
+                      ? _c("div", { staticClass: "flex border-b border-40" }, [
+                          _c("div", { staticClass: "w-1/4 py-4" }, [
+                            _c("h4", { staticClass: "font-normal text-80" }, [
+                              _vm._v("Next Billing Date")
+                            ])
+                          ]),
+                          _vm._v(" "),
+                          _c("div", { staticClass: "w-3/4 py-4" }, [
+                            _c("p", { staticClass: "text-90" }, [
+                              _vm._v(
+                                _vm._s(subscription.next_billing_date) + " "
+                              )
+                            ])
+                          ])
                         ])
                       : _vm._e(),
                     _vm._v(" "),
-                    _vm.subscription.active &&
-                    !_vm.subscription.cancelled &&
-                    !_vm.subscription.cancel_at_period_end
-                      ? _c("span", [_vm._v("Active")])
-                      : _vm._e(),
-                    _vm._v("\n                    ·\n                    "),
-                    _c(
-                      "a",
-                      {
-                        staticClass: "text-primary no-underline",
-                        attrs: {
-                          href:
-                            _vm.basePath +
-                            "/cashier-tool/billable/" +
-                            _vm.resourceId
-                        }
-                      },
-                      [
-                        _vm._v(
-                          "\n                        Manage\n                    "
+                    subscription
+                      ? _c(
+                          "div",
+                          {
+                            staticClass:
+                              "flex border-b border-40 remove-bottom-border"
+                          },
+                          [
+                            _c("div", { staticClass: "w-1/4 py-4" }, [
+                              _c("h4", { staticClass: "font-normal text-80" }, [
+                                _vm._v("Status")
+                              ])
+                            ]),
+                            _vm._v(" "),
+                            _c("div", { staticClass: "w-3/4 py-4" }, [
+                              _c("p", { staticClass: "text-90" }, [
+                                subscription.on_grace_period
+                                  ? _c("span", [_vm._v("On Grace Period")])
+                                  : _vm._e(),
+                                _vm._v(" "),
+                                subscription.cancelled ||
+                                subscription.cancel_at_period_end
+                                  ? _c("span", { staticClass: "text-danger" }, [
+                                      _vm._v("Cancelled")
+                                    ])
+                                  : _vm._e(),
+                                _vm._v(" "),
+                                subscription.active &&
+                                !subscription.cancelled &&
+                                !subscription.cancel_at_period_end
+                                  ? _c("span", [_vm._v("Active")])
+                                  : _vm._e(),
+                                _vm._v(
+                                  "\n                        ·\n                        "
+                                ),
+                                _c(
+                                  "a",
+                                  {
+                                    staticClass: "text-primary no-underline",
+                                    attrs: {
+                                      href:
+                                        _vm.basePath +
+                                        "/cashier-tool/billable/" +
+                                        _vm.resourceId +
+                                        "/?subscription_id=" +
+                                        subscription.stripe_plan
+                                    }
+                                  },
+                                  [
+                                    _vm._v(
+                                      "\n                            Manage\n                        "
+                                    )
+                                  ]
+                                )
+                              ])
+                            ])
+                          ]
                         )
-                      ]
-                    )
-                  ])
-                ])
-              ]
-            )
-          : _vm._e()
-      ])
+                      : _vm._e()
+                  ]
+                )
+              })
+        ],
+        2
+      )
     ],
     1
   )
@@ -906,7 +926,7 @@ exports = module.exports = __webpack_require__(0)(false);
 
 
 // module
-exports.push([module.i, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* Scopes Styles */\n", ""]);
+exports.push([module.i, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* Scopes Styles */\n", ""]);
 
 // exports
 
@@ -919,118 +939,122 @@ exports.push([module.i, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 
 /* harmony default export */ __webpack_exports__["default"] = ({
-    props: ['userId'],
+  props: ['userId'],
 
-    data: function data() {
-        return {
-            loading: true,
-            user: null,
-            subscription: null,
-            cards: [],
-            invoices: [],
-            charges: [],
-            plans: [],
-            newPlan: ''
-        };
+  data: function data() {
+    return {
+      loading: true,
+      user: null,
+      subscription: null,
+      cards: [],
+      invoices: [],
+      charges: [],
+      plans: [],
+      newPlan: ''
+    };
+  },
+  mounted: function mounted() {
+    this.loadUserData();
+  },
+
+
+  methods: {
+    /**
+     * Load the user data.
+     */
+    loadUserData: function loadUserData() {
+      var _this = this;
+
+      var subscriptionId = _.isEmpty(this.newPlan) ? this.$route.query.subscription_id : this.newPlan;
+      axios.get('/nova-cashier-tool-api/billable/' + this.userId + '/?subscription_id=' + subscriptionId).then(function (response) {
+        _this.user = response.data.user;
+        _this.subscription = response.data.subscriptions;
+        _this.cards = response.data.cards;
+        _this.invoices = response.data.invoices;
+        _this.charges = response.data.charges;
+        _this.plans = response.data.plans;
+
+        _this.newPlan = response.data.subscriptions ? response.data.subscriptions.stripe_plan : null;
+
+        _this.loading = false;
+      });
     },
-    mounted: function mounted() {
-        this.loadUserData();
+
+
+    /**
+     * Refund Charge.
+     */
+    refundCharge: function refundCharge(chargeId) {
+      var _this2 = this;
+
+      this.loading = true;
+
+      axios.post('/nova-cashier-tool-api/billable/' + this.userId + '/refund/' + chargeId, { subscription_id: this.subscription.stripe_plan }).then(function (response) {
+        _this2.$toasted.show('Refunded successfully!', { type: 'success' });
+
+        _this2.loadUserData();
+      }).catch(function (errors) {
+        _this2.$toasted.show(errors.response.data.message, { type: 'error' });
+      });
     },
 
 
-    methods: {
-        /**
-         * Load the user data.
-         */
-        loadUserData: function loadUserData() {
-            var _this = this;
+    /**
+     * Cancel subscription.
+     */
+    cancelSubscription: function cancelSubscription() {
+      var _this3 = this;
 
-            axios.get('/nova-cashier-tool-api/billable/' + this.userId).then(function (response) {
-                _this.user = response.data.user;
-                _this.subscription = response.data.subscription;
-                _this.cards = response.data.cards;
-                _this.invoices = response.data.invoices;
-                _this.charges = response.data.charges;
-                _this.plans = response.data.plans;
+      this.loading = true;
 
-                _this.newPlan = response.data.subscription ? response.data.subscription.stripe_plan : null;
+      axios.post('/nova-cashier-tool-api/billable/' + this.userId + '/cancel', { subscription_id: this.subscription.stripe_plan }).then(function (response) {
+        _this3.$toasted.show('Cancelled successfully!', { type: 'success' });
 
-                _this.loading = false;
-            });
-        },
+        _this3.loadUserData();
+      }).catch(function (errors) {
+        _this3.$toasted.show(errors.response.data.message, { type: 'error' });
+      });
+    },
 
 
-        /**
-         * Refund Charge.
-         */
-        refundCharge: function refundCharge(chargeId) {
-            var _this2 = this;
+    /**
+     * Resume subscription.
+     */
+    resumeSubscription: function resumeSubscription() {
+      var _this4 = this;
 
-            this.loading = true;
+      this.loading = true;
 
-            axios.post('/nova-cashier-tool-api/billable/' + this.userId + '/refund/' + chargeId, { subscription_id: this.subscription.stripe_plan }).then(function (response) {
-                _this2.$toasted.show("Refunded successfully!", { type: "success" });
+      axios.post('/nova-cashier-tool-api/billable/' + this.userId + '/resume', { subscription_id: this.subscription.stripe_plan }).then(function (response) {
+        _this4.$toasted.show('Resumed successfully!', { type: 'success' });
 
-                _this2.loadUserData();
-            }).catch(function (errors) {
-                _this2.$toasted.show(errors.response.data.message, { type: "error" });
-            });
-        },
-
-
-        /**
-         * Cancel subscription.
-         */
-        cancelSubscription: function cancelSubscription() {
-            var _this3 = this;
-
-            this.loading = true;
-
-            axios.post('/nova-cashier-tool-api/billable/' + this.userId + '/cancel', { subscription_id: this.subscription.stripe_plan }).then(function (response) {
-                _this3.$toasted.show("Cancelled successfully!", { type: "success" });
-
-                _this3.loadUserData();
-            }).catch(function (errors) {
-                _this3.$toasted.show(errors.response.data.message, { type: "error" });
-            });
-        },
+        _this4.loadUserData();
+      }).catch(function (errors) {
+        _this4.$toasted.show(errors.response.data.message, { type: 'error' });
+      });
+    },
 
 
-        /**
-         * Resume subscription.
-         */
-        resumeSubscription: function resumeSubscription() {
-            var _this4 = this;
+    /**
+     * Update subscription.
+     */
+    updateSubscription: function updateSubscription() {
+      var _this5 = this;
 
-            this.loading = true;
+      this.loading = true;
 
-            axios.post('/nova-cashier-tool-api/billable/' + this.userId + '/resume', { subscription_id: this.subscription.stripe_plan }).then(function (response) {
-                _this4.$toasted.show("Resumed successfully!", { type: "success" });
+      axios.post('/nova-cashier-tool-api/billable/' + this.userId + '/update', {
+        plan: this.newPlan,
+        subscription_id: this.subscription.stripe_plan
+      }).then(function (response) {
+        _this5.$toasted.show('Updated successfully!', { type: 'success' });
 
-                _this4.loadUserData();
-            }).catch(function (errors) {
-                _this4.$toasted.show(errors.response.data.message, { type: "error" });
-            });
-        },
-
-
-        /**
-         * Update subscription.
-         */
-        updateSubscription: function updateSubscription() {
-            var _this5 = this;
-
-            this.loading = true;
-
-            axios.post('/nova-cashier-tool-api/billable/' + this.userId + '/update', { plan: this.newPlan, subscription_id: this.subscription.stripe_plan }).then(function (response) {
-                _this5.$toasted.show("Updated successfully!", { type: "success" });
-
-                _this5.loadUserData();
-            }).catch(function (errors) {
-                _this5.$toasted.show(errors.response.data.message, { type: "error" });
-            });
-        }
+        _this5.loadUserData();
+      }).catch(function (errors) {
+        _this5.$toasted.show(errors.response.data.message, { type: 'error' });
+      });
     }
+  }
 });
 
 /***/ }),
@@ -1084,7 +1108,7 @@ var render = function() {
               _vm._v(" "),
               _c("p", { staticClass: "text-white-50% text-lg" }, [
                 _vm._v(
-                  "\n            Fetching subscription information from Stripe. Might take a few moments.\n        "
+                  "\n            Fetching subscription information from BrainTree. Might take a few moments.\n        "
                 )
               ])
             ]
@@ -1106,9 +1130,10 @@ var render = function() {
               _vm._v(" "),
               _c("div", { staticClass: "w-3/4 py-4" }, [
                 _c("p", { staticClass: "text-90" }, [
-                  _vm._v(
-                    _vm._s(_vm.user.name) + " (" + _vm._s(_vm.user.email) + ")"
-                  )
+                  _vm._v(_vm._s(_vm.user.name) + " "),
+                  _vm.user.email !== undefined
+                    ? _c("span", [_vm._v("(" + _vm._s(_vm.user.email) + ")")])
+                    : _vm._e()
                 ])
               ])
             ]),
@@ -1178,14 +1203,16 @@ var render = function() {
                             [
                               _vm._v(
                                 "\n                        " +
-                                  _vm._s(plan.id) +
+                                  _vm._s(plan.description) +
                                   " (" +
-                                  _vm._s(plan.price / 100) +
+                                  _vm._s(plan.price) +
                                   " " +
                                   _vm._s(plan.currency) +
                                   " / " +
-                                  _vm._s(plan.interval) +
-                                  ")\n                    "
+                                  _vm._s(plan.plan_interval) +
+                                  " time(s), on\n                        the " +
+                                  _vm._s(plan.plan_frequency) +
+                                  "th each month)\n                    "
                               )
                             ]
                           )
@@ -1226,11 +1253,14 @@ var render = function() {
                   _c("div", { staticClass: "w-3/4 py-4" }, [
                     _c("p", { staticClass: "text-90" }, [
                       _vm._v(
-                        _vm._s(_vm.subscription.plan_amount / 100) +
+                        _vm._s(_vm.subscription.plan_amount) +
                           " (" +
                           _vm._s(_vm.subscription.plan_currency) +
-                          ") / " +
-                          _vm._s(_vm.subscription.plan_interval)
+                          ")\n                                                       / " +
+                          _vm._s(_vm.subscription.plan_interval) +
+                          " time(s), on the\n                                                       " +
+                          _vm._s(_vm.subscription.plan_frequency) +
+                          "th each month"
                       )
                     ])
                   ])
@@ -1243,11 +1273,7 @@ var render = function() {
                   _vm._v(" "),
                   _c("div", { staticClass: "w-3/4 py-4" }, [
                     _c("p", { staticClass: "text-90" }, [
-                      _vm._v(
-                        _vm._s(_vm.subscription.current_period_start) +
-                          " => " +
-                          _vm._s(_vm.subscription.current_period_end)
-                      )
+                      _vm._v(_vm._s(_vm.subscription.next_billing_date) + " ")
                     ])
                   ])
                 ])
@@ -1398,7 +1424,7 @@ var render = function() {
                                   },
                                   [
                                     _vm._v(
-                                      "\n                            Refund\n                        "
+                                      "\n                                Refund\n                            "
                                     )
                                   ]
                                 )
@@ -1515,7 +1541,7 @@ var render = function() {
                               },
                               [
                                 _vm._v(
-                                  "\n                            Refund\n                        "
+                                  "\n                                Refund\n                            "
                                 )
                               ]
                             )
@@ -1636,7 +1662,7 @@ var staticRenderFns = [
     var _c = _vm._self._c || _h
     return _c("div", { staticClass: "w-1/4 py-4" }, [
       _c("h4", { staticClass: "font-normal text-80" }, [
-        _vm._v("Billing Period")
+        _vm._v("Next Billing Date")
       ])
     ])
   },

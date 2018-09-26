@@ -1,4 +1,4 @@
- **_This package is not yet fully tested, and not yet on composer._** 
+ **_This package is not fully tested yet, it is available on composer._** 
 
 # Laravel Nova / Laravel Cashier / Braintree
 This package is based on [nova-cashier-manager](https://github.com/themsaid/nova-cashier-manager), I kept his namespace for all PHP classes.
@@ -12,7 +12,12 @@ in hand with [Laravel Cashier](https://github.com/laravel/cashier).
 2. Some features / Data will not display properly, due to the braintree feature missing
 3. `charges` are `transactions`
 4. BrainTree Libraries has fully replaced the Stripe Library.
-5. It does support multiple different plans, but due to the limitation of the UI, it only shows the first plan. 
+5. It support multiple subscriptions !
+
+## Todos
+1. I need more people to test this ... My use case is very limited 
+2. Cancel Subscription still do not work (out of some mysterious reasons)
+3. Maybe a better UI for multiple subscription cards 
 
 ## How it works
 This package intends to function as much we can with the BrainTree Library, and Laravel Cashier. Some features that was meant for Stripe will be lost (e.g. Refund)

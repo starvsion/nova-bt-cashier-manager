@@ -53,21 +53,27 @@
             /** @var \Laravel\Cashier\Billable|\Eloquent $billable */
             $billable = (new $this->billableModel)->find($billableId);
 
-            $subscription = $billable->subscriptions()->first();
+            $subscriptions = $billable->subscriptions();
 
-            if (!$subscription) {
+            if ($subscriptions->count() < 1) {
                 return [
-                    'subscription' => null,
+                    'subscriptions' => null,
                 ];
             }
 
+            if (request()->has('subscription_id')) {
+                $subscription =$subscriptions
+                    ->where('braintree_plan', request()->subscription_id)
+                    ->first();
+            }
+
             return response()->json([
-                'user'     => $billable->toArray(),
-                'cards'    => request('brief') ? [] : $this->formatCards($billable),
-                'invoices' => request('brief') ? [] : $this->formatInvoices($billable->invoicesIncludingPending()->get()),
-                'charges'  => request('brief') ? [] : $this->formatCharges($billable),
-                'subscription' => $this->formatSubscription($subscription),
-                 'plans' => request('brief') ? [] : $this->formatPlans(Plan::all()),
+                'user'          => $billable->toArray(),
+                'cards'         => request('brief') ? [] : $this->formatCards($billable),
+                'invoices'      => request('brief') ? [] : $this->formatInvoices($billable->invoicesIncludingPending()->get()),
+                'charges'       => request('brief') ? [] : $this->formatCharges($billable),
+                'subscriptions' => request()->has('subscription_id') ? $this->formatSubscription($subscription) : $this->formatSubscriptions($subscriptions),
+                'plans'         => request('brief') ? [] : $this->formatPlans(Plan::all()),
             ]);
         }
 
@@ -84,10 +90,14 @@
             /** @var \Laravel\Cashier\Billable|\Eloquent $billable */
             $billable = (new $this->billableModel)->find($billableId);
 
+            $subscription = $billable->subscriptions()
+                ->where('braintree_plan', $request->subscription_id)
+                ->first();
+
             if ($request->input('now')) {
-                $billable->subscription($request->subscription_id)->cancelNow();
+                $subscription->cancelNow();
             } else {
-                $billable->subscription($request->subscription_id)->cancel();
+                $subscription->cancel();
             }
         }
 
@@ -101,9 +111,16 @@
          */
         public function updateSubscription(Request $request, $billableId)
         {
+            /** @var \Laravel\Cashier\Billable|\Eloquent $billable */
+
             $billable = (new $this->billableModel)->find($billableId);
 
-            $billable->subscription($request->subscription_id)->swap($request->input('plan'));
+            $subscription = $billable->subscriptions()
+                ->where('braintree_plan', $request->subscription_id)
+                ->first();
+
+            $subscription
+                ->swap($request->input('plan'));
         }
 
         /**
@@ -117,9 +134,15 @@
          */
         public function resumeSubscription(Request $request, $billableId)
         {
+            /** @var \Laravel\Cashier\Billable|\Eloquent $billable */
+
             $billable = (new $this->billableModel)->find($billableId);
 
-            $billable->subscription($request->subscription_id)->resume();
+            $subscription = $billable->subscriptions()
+                ->where('braintree_plan', $request->subscription_id)
+                ->first();
+
+            $subscription->resume();
         }
 
         /**
@@ -136,39 +159,57 @@
             return '';
         }
 
+        public function formatSubscriptions($subscriptions)
+        {
+            if (empty($subscriptions)) {
+                return [];
+            }
+
+            return $subscriptions->get()->map(function ($subscription) {
+                return $this->formatSubscription($subscription);
+            });
+        }
+
         /**
          * Format a a subscription object.
          *
          * @param  \Laravel\Cashier\Subscription $subscription
-         * @param  \Stripe\Subscription          $stripeSubscription
          *
          * @return array
          */
         public function formatSubscription($subscription)
         {
             $brainTreeSubscription = $subscription->asBraintreeSubscription();
-           // dd($brainTreeSubscription->jsonSerialize());
-            return array_merge($subscription->toArray(), [
-                'plan_amount'           => $brainTreeSubscription->nextBillAmount,
+            $planID = $brainTreeSubscription->planId;
+
+            $plan = collect(Plan::all())
+                ->where('id', $planID)
+                ->first();
+
+            return [
+                'plan_amount'           => abs($plan->price),
                 //braintree is always 1 month
-                'plan_interval'         => 1,
-                'plan_currency'         => NULL,
-                'plan'                  => $brainTreeSubscription,
-                'stripe_plan'           => $brainTreeSubscription->id,
+                'plan_interval'         => $plan->billingDayOfMonth,
+                'plan_frequency'        => $plan->billingFrequency,
+                'plan_currency'         => $plan->currencyIsoCode,
+                'plan'                  => $plan->description,
+                'stripe_plan'           => $plan->id,
+                'name'                  => $plan->name,
                 'ended'                 => null,
                 'cancelled'             => $subscription->cancelled(),
                 'active'                => $subscription->active(),
                 'on_trial'              => $subscription->onTrial(),
                 'on_grace_period'       => $subscription->onGracePeriod(),
                 'charges_automatically' => true,
-                'created_at'            => Carbon::createFromTimestamp($brainTreeSubscription->createdAt->getTimestamp()),
+                'created_at'            => Carbon::createFromTimestamp($brainTreeSubscription->createdAt->getTimestamp())->toDateString(),
                 'ended_at'              => null,
-                'current_period_start'  => $brainTreeSubscription->billingPeriodStartDate ? Carbon::createFromTimestamp($brainTreeSubscription->billingPeriodStartDate)->toDateString() : null,
-                'current_period_end'    => $brainTreeSubscription->billingPeriodEndDate ? Carbon::createFromTimestamp($brainTreeSubscription->billingPeriodEndDate)->toDateString() : null,
+                'next_billing_date'     => $brainTreeSubscription->nextBillingDate ?
+                    Carbon::createFromTimestamp($brainTreeSubscription->nextBillingDate->getTimestamp())->toDateString() :
+                    null,
                 'days_until_due'        => 0,
                 'cancel_at_period_end'  => 0,
                 'canceled_at'           => null,
-            ]);
+            ];
         }
 
         /**
@@ -234,6 +275,7 @@
             $transactions = \Braintree_Transaction::search([
                 \Braintree_TransactionSearch::customerId()->is($billable->braintree_id),
             ]);
+
             return collect($transactions)->map(function (Transaction $charge) {
                 return [
                     'id'              => $charge->id,
@@ -265,9 +307,11 @@
                 return [
                     'id'             => $plan->id,
                     'price'          => $plan->price,
-                    'interval'       => $plan->billingFrequency,
+                    'plan_interval'  => $plan->billingDayOfMonth,
+                    'plan_frequency' => $plan->billingFrequency,
                     'currency'       => $plan->currencyIsoCode,
-                    'interval_count' => $plan->billingFrequency,
+                    'description'    => $plan->description,
+                    'name'           => $plan->name,
                 ];
             })->toArray();
         }
