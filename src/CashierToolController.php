@@ -70,7 +70,7 @@
             return response()->json([
                 'user'          => $billable->toArray(),
                 'cards'         => request('brief') ? [] : $this->formatCards($billable),
-                'invoices'      => request('brief') ? [] : $this->formatInvoices($billable->invoicesIncludingPending()->get()),
+                'invoices'      => request('brief') ? [] : $this->formatInvoices(optional($billable->invoicesIncludingPending())->get()),
                 'charges'       => request('brief') ? [] : $this->formatCharges($billable),
                 'subscriptions' => request()->has('subscription_id') ? $this->formatSubscription($subscription) : $this->formatSubscriptions($subscriptions),
                 'plans'         => request('brief') ? [] : $this->formatPlans(Plan::all()),
@@ -232,7 +232,7 @@
                     'is_default' => $card->default,
                     'name'       => $card->cardholderName,
                     'last4'      => $card->last4,
-                    'country'    => $card->billingAddress->countryCodeAlpha2,
+                    'country'    => optional($card->billingAddress)->countryCodeAlpha2,
                     'brand'      => $card->cardType,
                     'exp_month'  => $expiryArray[0],
                     'exp_year'   => $expiryArray[1],
@@ -250,13 +250,19 @@
         private function formatInvoices($invoices)
         {
             return collect($invoices)->map(function (Invoice $invoice) {
+                $transaction = $transaction ;
+
+                if (empty($transaction)) {
+                    return;
+                }
+
                 return [
-                    'id'           => $invoice->asBraintreeTransaction()->id,
+                    'id'           => $transaction->id,
                     'total'        => $invoice->total(),
                     //not sure what this one does ?
-                    'attempted'    => $invoice->asBraintreeTransaction()->processorResponseCode,
-                    'charge_id'    => $invoice->asBraintreeTransaction()->id,
-                    'currency'     => $invoice->asBraintreeTransaction()->currencyIsoCode,
+                    'attempted'    => $transaction->processorResponseCode,
+                    'charge_id'    => $transaction->id,
+                    'currency'     => $transaction->currencyIsoCode,
                     //these two should work, need testing
                     'period_start' => $invoice->period_start ? Carbon::createFromTimestamp($invoice->period_start)->toDateTimeString() : null,
                     'period_end'   => $invoice->period_end ? Carbon::createFromTimestamp($invoice->period_end)->toDateTimeString() : null,
