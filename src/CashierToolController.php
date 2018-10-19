@@ -70,7 +70,7 @@
             return response()->json([
                 'user'          => $billable->toArray(),
                 'cards'         => request('brief') ? [] : $this->formatCards($billable),
-                'invoices'      => request('brief') ? [] : $this->formatInvoices(optional($billable->invoicesIncludingPending())->get()),
+                'invoices'      => request('brief') ? [] : $this->formatInvoices(optional($billable->invoicesIncludingPending())->toArray()),
                 'charges'       => request('brief') ? [] : $this->formatCharges($billable),
                 'subscriptions' => request()->has('subscription_id') ? $this->formatSubscription($subscription) : $this->formatSubscriptions($subscriptions),
                 'plans'         => request('brief') ? [] : $this->formatPlans(Plan::all()),
